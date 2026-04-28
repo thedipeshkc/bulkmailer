@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BulkMailer — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060d14;--sidebar:#080f18;--surface:#0d1824;--surface2:#111f2e;
+  --border:rgba(255,255,255,0.07);--text:#dce8f0;--muted:rgba(255,255,255,0.35);
+  --green:#1D9E75;--blue:#1D4E89;--red:#e05c6a;--yellow:#f0a500;
+  --radius:12px;
+}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;font-size:14px;}
+
+/* SIDEBAR */
+.sidebar{width:220px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0;position:fixed;top:0;left:0;height:100vh;z-index:100;}
+.sb-logo{padding:24px 20px;font-size:18px;font-weight:700;color:white;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.logo-dot{width:8px;height:8px;background:var(--green);border-radius:50%;}
+.sb-nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:2px;}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--muted);cursor:pointer;transition:all 0.15s;text-decoration:none;font-size:13px;font-weight:500;}
+.sb-item:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+.sb-item.active{background:rgba(29,158,117,0.12);color:var(--green);}
+.sb-item .icon{font-size:16px;width:20px;text-align:center;}
+.sb-bottom{padding:16px 12px;border-top:1px solid var(--border);}
+.sb-user{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;flex-shrink:0;}
+.user-name{font-size:13px;font-weight:500;color:var(--text);}
+.user-plan{font-size:11px;color:var(--green);}
+
+/* MAIN */
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column;}
+.topbar{height:56px;background:var(--sidebar);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:50;}
+.page-title{font-size:15px;font-weight:600;color:white;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.content{padding:28px;flex:1;}
+
+/* PANELS */
+.panel{display:none;} .panel.active{display:block;}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;}
+.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:18px;}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;}
+.stat-val{font-size:30px;font-weight:700;color:white;margin-bottom:4px;}
+.stat-val.green{color:var(--green);}
+.stat-label{font-size:12px;color:var(--muted);}
+
+/* FORM */
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
+input,textarea,select{width:100%;padding:11px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:'Sora',sans-serif;outline:none;transition:border-color 0.2s;}
+input:focus,textarea:focus{border-color:var(--green);}
+textarea{resize:vertical;line-height:1.6;}
+input::placeholder,textarea::placeholder{color:rgba(255,255,255,0.18);}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.field{margin-bottom:14px;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Sora',sans-serif;cursor:pointer;border:none;transition:all 0.15s;text-decoration:none;}
+.btn-green{background:var(--green);color:white;}
+.btn-green:hover{background:#189e6a;transform:translateY(-1px);}
+.btn-blue{background:var(--blue);color:white;}
+.btn-blue:hover{background:#1a4478;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-outline:hover{border-color:var(--green);color:var(--green);}
+.btn-red{background:rgba(224,92,106,0.15);color:var(--red);border:1px solid rgba(224,92,106,0.2);}
+.btn:disabled{opacity:0.4;cursor:not-allowed;transform:none!important;}
+.btn-row{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;}
+
+/* WIZARD STEPS */
+.wizard-steps{display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid var(--border);}
+.ws{flex:1;padding:12px 8px;text-align:center;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.ws .n{width:20px;height:20px;border-radius:50%;background:var(--surface2);font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ws.active{color:var(--green);border-color:var(--green);}
+.ws.active .n{background:var(--green);color:white;}
+.ws.done{color:var(--green);}
+.ws.done .n{background:var(--green);color:white;}
+.wpanel{display:none;} .wpanel.active{display:block;}
+
+/* UPLOAD */
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:40px 24px;text-align:center;cursor:pointer;transition:all 0.2s;}
+.upload-zone:hover{border-color:var(--green);background:rgba(29,158,117,0.04);}
+.upload-zone input{display:none;}
+
+/* TABLE */
+.table-wrap{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:14px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:var(--surface2);padding:10px 14px;text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;}
+td{padding:9px 14px;border-top:1px solid var(--border);}
+tr:hover td{background:rgba(255,255,255,0.015);}
+
+/* PROGRESS */
+.prog-wrap{background:var(--surface2);border-radius:100px;height:8px;margin:10px 0;}
+.prog-bar{background:var(--green);border-radius:100px;height:8px;width:0%;transition:width 0.4s;}
+.log-box{background:#040a10;border:1px solid var(--border);border-radius:8px;padding:14px;height:180px;overflow-y:auto;font-family:monospace;font-size:12px;line-height:1.8;color:#5db898;}
+
+/* ALERTS */
+.alert{padding:11px 16px;border-radius:8px;font-size:13px;margin-bottom:14px;}
+.alert-ok{background:rgba(29,158,117,0.1);border:1px solid rgba(29,158,117,0.2);color:#5dd4a8;}
+.alert-err{background:rgba(224,92,106,0.1);border:1px solid rgba(224,92,106,0.2);color:#ff8090;}
+
+/* BADGE */
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:100px;}
+.bg{background:rgba(29,158,117,0.12);color:var(--green);}
+.br{background:rgba(224,92,106,0.12);color:var(--red);}
+.bb{background:rgba(29,78,137,0.15);color:#5b9bd5;}
+
+/* HISTORY */
+.history-row{display:grid;grid-template-columns:1fr 80px 80px 80px 140px;gap:12px;padding:12px 16px;border-top:1px solid var(--border);align-items:center;}
+.history-header{display:grid;grid-template-columns:1fr 80px 80px 80px 140px;gap:12px;padding:10px 16px;background:var(--surface2);}
+.history-header span{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);}
+
+/* PREVIEW */
+#prev-frame{width:100%;height:500px;border:none;border-radius:8px;background:white;}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-logo"><div class="logo-dot"></div>BulkMailer</div>
+  <nav class="sb-nav">
+    <a class="sb-item active" id="nav-home" onclick="showPanel('home')"><span class="icon">🏠</span> Home</a>
+    <a class="sb-item" id="nav-compose" onclick="showPanel('compose')"><span class="icon">✉️</span> New Campaign</a>
+    <a class="sb-item" id="nav-templates" onclick="showPanel('templates')"><span class="icon">📄</span> Templates</a>
+    <a class="sb-item" id="nav-history" onclick="showPanel('history')"><span class="icon">📊</span> History</a>
+    <a class="sb-item" id="nav-settings" onclick="showPanel('settings')"><span class="icon">⚙️</span> Settings</a>
+  </nav>
+  <div class="sb-bottom">
+    <div class="sb-user">
+      <div class="avatar">{{ user_name[0].upper() }}</div>
+      <div>
+        <div class="user-name">{{ user_name }}</div>
+        <div class="user-plan">Free Plan</div>
+      </div>
+    </div>
+    <a href="/logout" class="sb-item" style="margin-top:4px"><span class="icon">🚪</span> Logout</a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="page-title" id="page-title">Dashboard</div>
+    <div class="topbar-right">
+      <span id="send-status" style="font-size:12px;color:var(--muted)"></span>
+      <a class="btn btn-green" onclick="showPanel('compose')" style="padding:8px 16px;font-size:12px;">+ New Campaign</a>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── HOME ── -->
+    <div class="panel active" id="panel-home">
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-val green">{{ total_sent }}</div>
+          <div class="stat-label">Total Emails Sent</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">{{ campaigns }}</div>
+          <div class="stat-label">Campaigns Run</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">{{ templates|length }}</div>
+          <div class="stat-label">Saved Templates</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Recent Campaigns</div>
+        {% if history %}
+        <div class="history-header">
+          <span>Subject</span><span>Total</span><span>Sent</span><span>Failed</span><span>Date</span>
+        </div>
+        {% for h in history %}
+        <div class="history-row">
+          <span style="color:var(--text)">{{ h.subject[:50] }}</span>
+          <span class="badge bb">{{ h.total }}</span>
+          <span class="badge bg">{{ h.sent }}</span>
+          <span class="badge {% if h.failed > 0 %}br{% else %}bg{% endif %}">{{ h.failed }}</span>
+          <span style="color:var(--muted);font-size:12px">{{ h.sent_at[:16] }}</span>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div style="padding:32px;text-align:center;color:var(--muted)">
+          No campaigns yet. <a onclick="showPanel('compose')" style="color:var(--green);cursor:pointer;">Start your first one →</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ── COMPOSE ── -->
+    <div class="panel" id="panel-compose">
+      <div class="wizard-steps">
+        <div class="ws active" id="wtab-1" onclick="wStep(1)"><span class="n">1</span> Contacts</div>
+        <div class="ws" id="wtab-2" onclick="wStep(2)"><span class="n">2</span> Email</div>
+        <div class="ws" id="wtab-3" onclick="wStep(3)"><span class="n">3</span> Preview</div>
+        <div class="ws" id="wtab-4" onclick="wStep(4)"><span class="n">4</span> Send</div>
+      </div>
+
+      <!-- W1: CONTACTS -->
+      <div class="wpanel active" id="wpanel-1">
+        <div class="card">
+          <div class="card-title">Upload Contacts CSV</div>
+          <div class="upload-zone" onclick="document.getElementById('csv-inp').click()">
+            <input type="file" id="csv-inp" accept=".csv" onchange="uploadCSV(this)">
+            <div style="font-size:40px;margin-bottom:12px">📋</div>
+            <div style="font-size:15px;color:var(--text);margin-bottom:6px">Click or drag & drop your CSV</div>
+            <div style="font-size:13px;color:var(--muted)">Required columns: <strong style="color:var(--text)">name</strong> and <strong style="color:var(--text)">email</strong></div>
+          </div>
+          <div id="csv-info" style="display:none;margin-top:14px;">
+            <div class="alert alert-ok" id="csv-msg"></div>
+            <div style="max-height:200px;overflow-y:auto;" class="table-wrap">
+              <table><thead><tr><th>#</th><th>Name</th><th>Email</th></tr></thead>
+              <tbody id="csv-tbody"></tbody></table>
+            </div>
+          </div>
+          <div id="csv-err"></div>
+          <div class="btn-row">
+            <button class="btn btn-green" id="w1-next" onclick="wStep(2)" disabled>Continue →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- W2: EMAIL -->
+      <div class="wpanel" id="wpanel-2">
+        <div class="card">
+          <div class="card-title">Email Content <span style="color:var(--green);font-size:11px;margin-left:8px">Use {name} to personalize</span></div>
+          <div class="field">
+            <label>Subject Line</label>
+            <input type="text" id="w-subject" placeholder="Thank You for attending, {name}!">
+          </div>
+          <div class="field">
+            <label>Image URL <span style="color:var(--muted);font-size:11px;text-transform:none;letter-spacing:0">(optional — paste direct Imgur link)</span></label>
+            <input type="url" id="w-image" placeholder="https://i.imgur.com/yourimage.jpg">
+          </div>
+          <div class="field">
+            <label>Email Body</label>
+            <textarea id="w-plain" rows="8" placeholder="Hi {name}, ..."></textarea>
+          </div>
+          <div class="field">
+            <label>Feedback / Link URL <span style="color:var(--muted);font-size:11px;text-transform:none;letter-spacing:0">(button in email)</span></label>
+            <input type="url" id="w-link" placeholder="https://forms.gle/yourform">
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-outline" onclick="wStep(1)">← Back</button>
+            <button class="btn btn-green" onclick="saveAndPreview()">Preview →</button>
+            <button class="btn btn-outline" onclick="saveTemplate()" style="margin-left:auto">💾 Save Template</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- W3: PREVIEW -->
+      <div class="wpanel" id="wpanel-3">
+        <div class="card">
+          <div class="card-title">Email Preview</div>
+          <iframe id="prev-frame"></iframe>
+          <div class="btn-row">
+            <button class="btn btn-outline" onclick="wStep(2)">← Edit</button>
+            <button class="btn btn-green" onclick="wStep(4)">Send This →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- W4: SEND -->
+      <div class="wpanel" id="wpanel-4">
+        <div class="card">
+          <div class="card-title">Send Campaign</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">
+            <div class="stat" style="padding:16px"><div class="stat-val green" id="s-total">0</div><div class="stat-label">Contacts</div></div>
+            <div class="stat" style="padding:16px"><div class="stat-val green" id="s-sent">0</div><div class="stat-label">Sent</div></div>
+            <div class="stat" style="padding:16px"><div class="stat-val" style="color:var(--red)" id="s-failed">0</div><div class="stat-label">Failed</div></div>
+          </div>
+          <div class="prog-wrap"><div class="prog-bar" id="s-bar"></div></div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px" id="s-label">Ready</div>
+          <div id="send-alert"></div>
+          <div class="log-box" id="s-log">Click Send to start...</div>
+          <div class="btn-row">
+            <button class="btn btn-outline" onclick="wStep(3)">← Back</button>
+            <button class="btn btn-green" id="send-btn" onclick="startSend()">🚀 Send All Emails</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TEMPLATES ── -->
+    <div class="panel" id="panel-templates">
+      <div class="card">
+        <div class="card-title">Saved Templates</div>
+        <div id="templates-list">
+          {% if templates %}
+          {% for t in templates %}
+          <div class="history-row" style="grid-template-columns:1fr 160px 160px">
+            <span>{{ t.name }} <span style="color:var(--muted);font-size:12px">— {{ t.subject[:40] }}</span></span>
+            <button class="btn btn-outline" style="padding:6px 14px;font-size:12px" onclick="loadTemplate({{ t.id }}, '{{ t.subject|e }}', `{{ t.plain|e }}`, '{{ t.image_url|e }}')">Use</button>
+            <button class="btn btn-red" style="padding:6px 14px;font-size:12px" onclick="deleteTemplate({{ t.id }}, this)">Delete</button>
+          </div>
+          {% endfor %}
+          {% else %}
+          <div style="padding:40px;text-align:center;color:var(--muted)">No saved templates yet. Save one from the compose screen.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HISTORY ── -->
+    <div class="panel" id="panel-history">
+      <div class="card">
+        <div class="card-title">Campaign History</div>
+        <div class="history-header">
+          <span>Subject</span><span>Total</span><span>Sent</span><span>Failed</span><span>Date</span>
+        </div>
+        <div id="history-list">
+        {% for h in history %}
+        <div class="history-row">
+          <span>{{ h.subject[:50] }}</span>
+          <span class="badge bb">{{ h.total }}</span>
+          <span class="badge bg">{{ h.sent }}</span>
+          <span class="badge {% if h.failed > 0 %}br{% else %}bg{% endif %}">{{ h.failed }}</span>
+          <span style="color:var(--muted);font-size:12px">{{ h.sent_at[:16] }}</span>
+        </div>
+        {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SETTINGS ── -->
+    <div class="panel" id="panel-settings">
+      <div class="card">
+        <div class="card-title">Brevo SMTP Settings</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.7">
+          These credentials are saved to your account and used for all your campaigns.
+          Get them from <a href="https://app.brevo.com/settings/keys/smtp" target="_blank" style="color:var(--green)">Brevo SMTP & API settings</a>.
+        </p>
+        <div class="row">
+          <div class="field">
+            <label>Brevo SMTP Login</label>
+            <input type="text" id="s-login" placeholder="a97f21001@smtp-brevo.com" value="{{ creds.smtp_login if creds else '' }}">
+          </div>
+          <div class="field">
+            <label>SMTP Key</label>
+            <input type="password" id="s-key" placeholder="xsmtpsib-..." value="{{ creds.smtp_key if creds else '' }}">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Sender Email (verified in Brevo)</label>
+            <input type="email" id="s-email" placeholder="you@gmail.com" value="{{ creds.sender_email if creds else '' }}">
+          </div>
+          <div class="field">
+            <label>Sender Name</label>
+            <input type="text" id="s-name" placeholder="Your Organization" value="{{ creds.sender_name if creds else '' }}">
+          </div>
+        </div>
+        <div id="settings-alert"></div>
+        <div class="btn-row">
+          <button class="btn btn-green" onclick="saveSettings()">Save Settings</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+let contacts = [];
+let pollTimer = null;
+
+// ── Nav ────────────────────────────────────────────────────
+const titles = {home:'Dashboard',compose:'New Campaign',templates:'Templates',history:'History',settings:'Settings'};
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+  document.getElementById('page-title').textContent = titles[id];
+  if (id === 'history') loadHistory();
+}
+
+// ── Wizard ─────────────────────────────────────────────────
+function wStep(n) {
+  for (let i=1;i<=4;i++) {
+    document.getElementById('wpanel-'+i).classList.toggle('active', i===n);
+    const t = document.getElementById('wtab-'+i);
+    t.classList.toggle('active', i===n);
+    t.classList.toggle('done', i<n);
+  }
+  if (n===4) { document.getElementById('s-total').textContent = contacts.length; }
+}
+
+// ── Upload CSV ─────────────────────────────────────────────
+function uploadCSV(inp) {
+  const file = inp.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('csv_file', file);
+  fetch('/api/parse-csv', {method:'POST', body:fd})
+    .then(r=>r.json())
+    .then(d => {
+      if (d.error) { document.getElementById('csv-err').innerHTML=`<div class="alert alert-err">${d.error}</div>`; return; }
+      contacts = d.contacts;
+      document.getElementById('csv-msg').textContent = `✓ ${d.count} contacts loaded from ${file.name}`;
+      document.getElementById('csv-info').style.display = 'block';
+      document.getElementById('w1-next').disabled = false;
+      const tb = document.getElementById('csv-tbody');
+      tb.innerHTML = '';
+      contacts.slice(0,50).forEach((c,i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${i+1}</td><td>${c.name||'—'}</td><td>${c.email}</td>`;
+        tb.appendChild(tr);
+      });
+      if (contacts.length > 50) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="3" style="text-align:center;color:var(--muted);padding:10px">+${contacts.length-50} more</td>`;
+        tb.appendChild(tr);
+      }
+    });
+}
+
+const dz = document.querySelector('.upload-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor='var(--green)'; });
+dz.addEventListener('dragleave', () => { dz.style.borderColor=''; });
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.style.borderColor='';
+  const f = e.dataTransfer.files[0];
+  if (f) { const dt=new DataTransfer(); dt.items.add(f); document.getElementById('csv-inp').files=dt.files; uploadCSV(document.getElementById('csv-inp')); }
+});
+
+// ── Preview ────────────────────────────────────────────────
+function saveAndPreview() {
+  const imageUrl = document.getElementById('w-image').value.trim();
+  const link     = document.getElementById('w-link').value.trim() || '#';
+  const plain    = document.getElementById('w-plain').value;
+  const html = `<html><body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+  <div style="max-width:580px;margin:32px auto;background:white;border-radius:10px;overflow:hidden;">
+    ${imageUrl ? `<img src="${imageUrl}" alt="Event" style="width:100%;max-height:280px;object-fit:cover;display:block;">` : ''}
+    <div style="background:#1D4E89;padding:24px 32px;">
+      <h1 style="color:white;margin:0;font-size:20px;font-weight:700;">${document.getElementById('w-subject').value.replace('{name}','Sample Name')}</h1>
+    </div>
+    <div style="padding:32px;">
+      <p style="font-size:15px;color:#444;line-height:1.8;white-space:pre-wrap;">${plain.replace('{name}','Sample Name')}</p>
+      ${link !== '#' ? `<div style="text-align:center;margin:32px 0;"><a href="${link}" style="display:inline-block;background:#1D4E89;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;">Click Here →</a></div>` : ''}
+    </div>
+    <div style="background:#f8f8f8;padding:14px 32px;border-top:1px solid #eee;"><p style="font-size:12px;color:#bbb;margin:0;text-align:center;">To unsubscribe, reply with "Unsubscribe".</p></div>
+  </div></body></html>`;
+  document.getElementById('prev-frame').srcdoc = html;
+  wStep(3);
+}
+
+// ── Save Template ──────────────────────────────────────────
+function saveTemplate() {
+  const name = prompt('Template name:');
+  if (!name) return;
+  fetch('/api/templates', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      name, subject: document.getElementById('w-subject').value,
+      plain: document.getElementById('w-plain').value,
+      image_url: document.getElementById('w-image').value,
+      html: ''
+    })
+  }).then(r=>r.json()).then(d => alert(d.message || d.error));
+}
+
+function loadTemplate(id, subject, plain, imageUrl) {
+  document.getElementById('w-subject').value = subject;
+  document.getElementById('w-plain').value = plain;
+  document.getElementById('w-image').value = imageUrl || '';
+  showPanel('compose');
+  wStep(2);
+}
+
+function deleteTemplate(id, btn) {
+  if (!confirm('Delete this template?')) return;
+  fetch(`/api/templates/${id}`, {method:'DELETE'})
+    .then(r=>r.json())
+    .then(() => btn.closest('.history-row').remove());
+}
+
+// ── Send ───────────────────────────────────────────────────
+function buildHTML() {
+  const imageUrl = document.getElementById('w-image').value.trim();
+  const link     = document.getElementById('w-link').value.trim() || '#';
+  return `<html><body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+<div style="max-width:580px;margin:32px auto;background:white;border-radius:10px;overflow:hidden;">
+  ${imageUrl ? `<img src="${imageUrl}" alt="Event" style="width:100%;max-height:280px;object-fit:cover;display:block;">` : ''}
+  <div style="background:#1D4E89;padding:24px 32px;"><h1 style="color:white;margin:0;font-size:20px;font-weight:700;">${document.getElementById('w-subject').value}</h1></div>
+  <div style="padding:32px;">
+    <p style="font-size:15px;color:#444;line-height:1.8;white-space:pre-wrap;">${document.getElementById('w-plain').value}</p>
+    ${link !== '#' ? `<div style="text-align:center;margin:32px 0;"><a href="${link}" style="display:inline-block;background:#1D4E89;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;">Click Here →</a></div>` : ''}
+  </div>
+  <div style="background:#f8f8f8;padding:14px 32px;border-top:1px solid #eee;"><p style="font-size:12px;color:#bbb;margin:0;text-align:center;">To unsubscribe, reply with "Unsubscribe".</p></div>
+</div></body></html>`;
+}
+
+function startSend() {
+  const btn = document.getElementById('send-btn');
+  const alertBox = document.getElementById('send-alert');
+  if (!contacts.length) { alertBox.innerHTML='<div class="alert alert-err">No contacts. Go back to Step 1.</div>'; return; }
+  btn.disabled = true; btn.textContent = '⏳ Sending...';
+  alertBox.innerHTML = '';
+  document.getElementById('s-log').textContent = 'Connecting...\n';
+  document.getElementById('send-status').textContent = '🟢 Sending...';
+
+  fetch('/api/send', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      contacts,
+      subject:    document.getElementById('w-subject').value,
+      plain_body: document.getElementById('w-plain').value,
+      html_body:  buildHTML(),
+      image_url:  document.getElementById('w-image').value.trim(),
+    })
+  }).then(r=>r.json()).then(d => {
+    if (d.error) { alertBox.innerHTML=`<div class="alert alert-err">${d.error}</div>`; btn.disabled=false; btn.textContent='🚀 Send All Emails'; return; }
+    pollTimer = setInterval(pollProgress, 1000);
+  });
+}
+
+function pollProgress() {
+  fetch('/api/progress').then(r=>r.json()).then(s => {
+    document.getElementById('s-sent').textContent   = s.sent;
+    document.getElementById('s-failed').textContent = s.failed;
+    const pct = s.total > 0 ? Math.round((s.sent+s.failed)/s.total*100) : 0;
+    document.getElementById('s-bar').style.width = pct+'%';
+    document.getElementById('s-label').textContent = `${pct}% — ${s.sent} sent, ${s.failed} failed`;
+    const log = document.getElementById('s-log');
+    if (s.log?.length) { log.textContent = s.log.slice(-30).join('\n'); log.scrollTop=log.scrollHeight; }
+    if (s.error) { document.getElementById('send-alert').innerHTML=`<div class="alert alert-err">${s.error}</div>`; clearInterval(pollTimer); resetBtn(); }
+    if (s.done) {
+      clearInterval(pollTimer);
+      document.getElementById('send-alert').innerHTML=`<div class="alert alert-ok">✅ Done! ${s.sent} sent successfully.</div>`;
+      document.getElementById('send-status').textContent = `✅ ${s.sent} sent`;
+      resetBtn();
+    }
+  });
+}
+
+function resetBtn() {
+  const btn = document.getElementById('send-btn');
+  btn.disabled = false; btn.textContent = '🚀 Send All Emails';
+}
+
+// ── Settings ───────────────────────────────────────────────
+function saveSettings() {
+  const d = {
+    smtp_login:   document.getElementById('s-login').value.trim(),
+    smtp_key:     document.getElementById('s-key').value.trim(),
+    sender_email: document.getElementById('s-email').value.trim(),
+    sender_name:  document.getElementById('s-name').value.trim(),
+  };
+  if (!d.smtp_login || !d.smtp_key || !d.sender_email || !d.sender_name) {
+    document.getElementById('settings-alert').innerHTML='<div class="alert alert-err">All fields required.</div>'; return;
+  }
+  fetch('/api/credentials', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(d)})
+    .then(r=>r.json())
+    .then(d => { document.getElementById('settings-alert').innerHTML=`<div class="alert alert-ok">✓ ${d.message}</div>`; });
+}
+
+// ── History ────────────────────────────────────────────────
+function loadHistory() {
+  fetch('/api/history').then(r=>r.json()).then(rows => {
+    const el = document.getElementById('history-list');
+    if (!rows.length) { el.innerHTML='<div style="padding:40px;text-align:center;color:var(--muted)">No history yet.</div>'; return; }
+    el.innerHTML = rows.map(h => `
+      <div class="history-row">
+        <span>${h.subject.substring(0,50)}</span>
+        <span class="badge bb">${h.total}</span>
+        <span class="badge bg">${h.sent}</span>
+        <span class="badge ${h.failed>0?'br':'bg'}">${h.failed}</span>
+        <span style="color:var(--muted);font-size:12px">${h.sent_at.substring(0,16)}</span>
+      </div>`).join('');
+  });
+}
+</script>
+</body>
+</html>
