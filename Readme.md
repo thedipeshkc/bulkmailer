@@ -2,7 +2,7 @@
 
 A fully deployed web app where anyone can sign up, connect their free Brevo account, and send personalized bulk emails to thousands of people.
 
-**Live URL:** `dkbulkemail.pythonanywhere.com`
+**Live URL:** `https://dkbulkemail.pythonanywhere.com`
 
 ---
 
