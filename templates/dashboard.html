@@ -133,7 +133,7 @@ tr:hover td{background:rgba(255,255,255,0.015);}
     <a class="sb-item" id="nav-templates" onclick="showPanel('templates')"><span class="icon">📄</span> Templates</a>
     <a class="sb-item" id="nav-history" onclick="showPanel('history')"><span class="icon">📊</span> History</a>
     <a class="sb-item" id="nav-settings" onclick="showPanel('settings')"><span class="icon">⚙️</span> Settings</a>
-    <a class="sb-item" id="nav-guide" href="/guide"><span class="icon">📖</span> Setup Guide</a>
+    <a class="sb-item" id="nav-guide" href="/guide" target="_blank"><span class="icon">📖</span> Setup Guide ↗</a>
   </nav>
   <div class="sb-bottom">
     <div class="sb-user">
@@ -377,13 +377,18 @@ let contacts = [];
 let pollTimer = null;
 
 // ── Nav ────────────────────────────────────────────────────
-const titles = {home:'Dashboard',compose:'New Campaign',templates:'Templates',history:'History',settings:'Settings',guide:'Brevo Setup Guide'};
+const titles = {home:'Dashboard',compose:'New Campaign',templates:'Templates',history:'History',settings:'Settings'};
+let contacts = [];
+let pollTimer = null;
 function showPanel(id) {
+  const panel = document.getElementById('panel-'+id);
+  if (!panel) return;
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
-  document.getElementById('panel-'+id).classList.add('active');
-  document.getElementById('nav-'+id).classList.add('active');
-  document.getElementById('page-title').textContent = titles[id];
+  panel.classList.add('active');
+  const navEl = document.getElementById('nav-'+id);
+  if (navEl) navEl.classList.add('active');
+  document.getElementById('page-title').textContent = titles[id] || id;
   if (id === 'history') loadHistory();
 }
 
@@ -583,12 +588,6 @@ function loadHistory() {
   });
 }
 }
-</script>
-
-<!-- ── SETUP GUIDE PANEL ── -->
-<script>
-// Add guide to titles
-titles['guide'] = 'Brevo Setup Guide';
 </script>
 
 </body>
