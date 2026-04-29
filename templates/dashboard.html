@@ -133,6 +133,7 @@ tr:hover td{background:rgba(255,255,255,0.015);}
     <a class="sb-item" id="nav-templates" onclick="showPanel('templates')"><span class="icon">📄</span> Templates</a>
     <a class="sb-item" id="nav-history" onclick="showPanel('history')"><span class="icon">📊</span> History</a>
     <a class="sb-item" id="nav-settings" onclick="showPanel('settings')"><span class="icon">⚙️</span> Settings</a>
+    <a class="sb-item" id="nav-guide" href="/guide"><span class="icon">📖</span> Setup Guide</a>
   </nav>
   <div class="sb-bottom">
     <div class="sb-user">
@@ -376,7 +377,7 @@ let contacts = [];
 let pollTimer = null;
 
 // ── Nav ────────────────────────────────────────────────────
-const titles = {home:'Dashboard',compose:'New Campaign',templates:'Templates',history:'History',settings:'Settings'};
+const titles = {home:'Dashboard',compose:'New Campaign',templates:'Templates',history:'History',settings:'Settings',guide:'Brevo Setup Guide'};
 function showPanel(id) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
@@ -581,6 +582,14 @@ function loadHistory() {
       </div>`).join('');
   });
 }
+}
 </script>
+
+<!-- ── SETUP GUIDE PANEL ── -->
+<script>
+// Add guide to titles
+titles['guide'] = 'Brevo Setup Guide';
+</script>
+
 </body>
 </html>

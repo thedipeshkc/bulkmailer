@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BulkMailer — Brevo Setup Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060d14;--surface:#0d1824;--surface2:#111f2e;
+  --border:rgba(255,255,255,0.07);--text:#dce8f0;--muted:rgba(255,255,255,0.35);
+  --green:#1D9E75;--blue:#1D4E89;--yellow:#f0a500;--red:#e05c6a;
+  --radius:12px;
+}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+nav{height:56px;background:rgba(13,24,36,0.95);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px);}
+.logo{font-size:16px;font-weight:700;color:white;display:flex;align-items:center;gap:8px;}
+.logo-dot{width:8px;height:8px;background:var(--green);border-radius:50%;}
+.nav-links{display:flex;gap:12px;align-items:center;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Sora',sans-serif;cursor:pointer;border:none;transition:all 0.15s;text-decoration:none;}
+.btn-green{background:var(--green);color:white;}
+.btn-green:hover{background:#18896a;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-outline:hover{border-color:var(--green);color:var(--green);}
+
+.hero{text-align:center;padding:56px 24px 40px;background:radial-gradient(ellipse at 50% 0%,rgba(29,78,137,0.2) 0%,transparent 70%);}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(29,158,117,0.1);border:1px solid rgba(29,158,117,0.2);color:var(--green);font-size:12px;font-weight:600;padding:4px 12px;border-radius:100px;margin-bottom:20px;}
+.hero h1{font-size:32px;font-weight:700;color:white;margin-bottom:10px;}
+.hero p{font-size:15px;color:var(--muted);max-width:500px;margin:0 auto;line-height:1.7;}
+
+.timeline{max-width:720px;margin:0 auto;padding:0 24px 60px;}
+
+.step-card{display:flex;gap:0;margin-bottom:0;position:relative;}
+.step-card:not(:last-child)::after{content:'';position:absolute;left:18px;top:44px;width:2px;bottom:-8px;background:var(--border);z-index:0;}
+
+.step-num{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;position:relative;z-index:1;margin-top:4px;}
+.num-green{background:var(--green);color:white;}
+.num-blue{background:var(--blue);color:white;}
+
+.step-body{flex:1;padding:0 0 32px 16px;}
+.step-title{font-size:16px;font-weight:600;color:white;margin-bottom:6px;}
+.step-desc{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:14px;}
+
+.steps-list{display:flex;flex-direction:column;gap:8px;}
+.step-item{display:flex;gap:10px;font-size:13px;color:var(--muted);align-items:flex-start;line-height:1.6;}
+.step-item .n{min-width:22px;height:22px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.step-item strong{color:var(--text);}
+code{background:var(--surface2);border:1px solid var(--border);padding:1px 7px;border-radius:5px;font-size:12px;color:var(--green);}
+
+.ok-box{background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.18);border-radius:8px;padding:10px 14px;font-size:13px;color:#5dd4a8;margin-top:12px;line-height:1.6;}
+.warn-box{background:rgba(240,165,0,0.08);border:1px solid rgba(240,165,0,0.2);border-radius:8px;padding:10px 14px;font-size:13px;color:#f0c040;margin-top:12px;line-height:1.6;}
+
+.creds-table{background:var(--surface2);border-radius:8px;padding:14px 16px;margin-top:12px;}
+.cred-row{display:grid;grid-template-columns:160px 1fr;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);align-items:center;font-size:13px;}
+.cred-row:last-child{border-bottom:none;}
+.cred-label{color:var(--muted);}
+
+.final-card{background:linear-gradient(135deg,rgba(29,78,137,0.2),rgba(29,158,117,0.15));border:1px solid rgba(29,158,117,0.2);border-radius:var(--radius);padding:28px;text-align:center;margin-top:8px;}
+.final-card h3{font-size:20px;font-weight:700;color:white;margin-bottom:8px;}
+.final-card p{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.7;}
+
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo"><div class="logo-dot"></div>BulkMailer</div>
+  <div class="nav-links">
+    <a href="/dashboard" class="btn btn-outline">← Back to Dashboard</a>
+    <a href="/dashboard" class="btn btn-green">Go to Settings →</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge">⏱ Takes about 6 minutes — one time only!</div>
+  <h1>Brevo Setup Guide</h1>
+  <p>Follow these 5 steps to connect your free Brevo account and start sending bulk emails instantly.</p>
+</div>
+
+<div class="timeline">
+
+  <!-- STEP 1 -->
+  <div class="step-card">
+    <div class="step-num num-green">1</div>
+    <div class="step-body">
+      <div class="step-title">Create a free Brevo account</div>
+      <div class="step-desc">Brevo gives you <strong style="color:var(--green)">300 free emails per day, forever.</strong> No credit card needed.</div>
+      <div class="steps-list">
+        <div class="step-item"><span class="n">1</span><span>Go to <a href="https://brevo.com" target="_blank" style="color:var(--green);">brevo.com</a> and click <strong>Sign up free</strong></span></div>
+        <div class="step-item"><span class="n">2</span><span>Enter your name, email and password → click <strong>Create account</strong></span></div>
+        <div class="step-item"><span class="n">3</span><span>Check your inbox and click the <strong>verification email</strong> from Brevo</span></div>
+        <div class="step-item"><span class="n">4</span><span>Complete the short onboarding → select <strong>Marketing emails</strong> as your use case</span></div>
+      </div>
+      <div class="ok-box">✓ You're in! You'll land on the Brevo dashboard.</div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step-card">
+    <div class="step-num num-blue">2</div>
+    <div class="step-body">
+      <div class="step-title">Find your SMTP Login</div>
+      <div class="step-desc">Your SMTP login is <strong style="color:white">NOT your email address</strong> — Brevo gives you a special login that looks like <code>a97f21001@smtp-brevo.com</code></div>
+      <div class="steps-list">
+        <div class="step-item"><span class="n">1</span><span>In Brevo dashboard → click your <strong>account name</strong> (top right corner)</span></div>
+        <div class="step-item"><span class="n">2</span><span>Click <strong>SMTP & API</strong> from the dropdown</span></div>
+        <div class="step-item"><span class="n">3</span><span>Click the <strong>SMTP</strong> tab</span></div>
+        <div class="step-item"><span class="n">4</span><span>Copy the <strong>Login</strong> value shown — save it somewhere!</span></div>
+      </div>
+      <div class="ok-box">✓ Looks like: <code>a97f21001@smtp-brevo.com</code> — copy this exactly.</div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step-card">
+    <div class="step-num num-blue">3</div>
+    <div class="step-body">
+      <div class="step-title">Generate your SMTP Key</div>
+      <div class="step-desc">Still on the SMTP tab — now generate an API key for sending.</div>
+      <div class="steps-list">
+        <div class="step-item"><span class="n">1</span><span>Click <strong>"Generate a new SMTP key"</strong> button</span></div>
+        <div class="step-item"><span class="n">2</span><span>Give it any name like <strong>BulkMailer</strong> → click Generate</span></div>
+        <div class="step-item"><span class="n">3</span><span>Click the <strong>copy icon</strong> next to the key shown</span></div>
+        <div class="step-item"><span class="n">4</span><span>Paste it in Notepad — you'll need it in Step 5</span></div>
+      </div>
+      <div class="warn-box">⚠️ Brevo only shows the key ONCE! Copy it before closing the page. It starts with <code>xsmtpsib-</code></div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step-card">
+    <div class="step-num num-blue">4</div>
+    <div class="step-body">
+      <div class="step-title">Verify your sender email</div>
+      <div class="step-desc">This is the email your recipients see as the "From" address — your Gmail, Outlook, etc.</div>
+      <div class="steps-list">
+        <div class="step-item"><span class="n">1</span><span>In Brevo → left sidebar → click <strong>Senders, domains, IPs</strong></span></div>
+        <div class="step-item"><span class="n">2</span><span>Click <strong>"Add a sender"</strong></span></div>
+        <div class="step-item"><span class="n">3</span><span>Enter your name and your email address → click <strong>Save</strong></span></div>
+        <div class="step-item"><span class="n">4</span><span>Open your inbox → click the <strong>verification link</strong> from Brevo</span></div>
+        <div class="step-item"><span class="n">5</span><span>Go back to Brevo Senders page — it should now show <strong style="color:var(--green)">● Verified</strong></span></div>
+      </div>
+      <div class="ok-box">✓ Your sender email is verified and ready to use.</div>
+    </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step-card">
+    <div class="step-num num-green">5</div>
+    <div class="step-body">
+      <div class="step-title">Enter your credentials in Settings</div>
+      <div class="step-desc">Now paste everything into the Settings page of BulkMailer. Here's what goes where:</div>
+      <div class="creds-table">
+        <div class="cred-row">
+          <span class="cred-label">Brevo SMTP Login</span>
+          <code>a97f21001@smtp-brevo.com</code>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">SMTP Key</span>
+          <code>xsmtpsib-your-key-here</code>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Sender Email</span>
+          <code>your-verified@gmail.com</code>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label">Sender Name</span>
+          <code>Your Name or Organization</code>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <a href="/dashboard" class="btn btn-green">Go to Settings and paste them →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINAL -->
+  <div class="final-card">
+    <div style="font-size:48px;margin-bottom:12px;">🚀</div>
+    <h3>You're all set!</h3>
+    <p>Once your credentials are saved, go to <strong style="color:white">New Campaign</strong> to upload your contacts, write your email, preview it, and send to everyone — all in one place.</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <a href="/dashboard" class="btn btn-green">Start First Campaign →</a>
+      <a href="/dashboard" class="btn btn-outline">Back to Dashboard</a>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -199,6 +199,11 @@ def dashboard():
         campaigns=campaigns
     )
 
+@app.route("/guide")
+@login_required
+def guide():
+    return render_template("guide.html")
+
 
 # ══════════════════════════════════════════════════════════
 #  CREDENTIALS API
