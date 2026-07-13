@@ -337,20 +337,14 @@ tr:hover td{background:rgba(255,255,255,0.015);}
     <!-- ── SETTINGS ── -->
     <div class="panel" id="panel-settings">
       <div class="card">
-        <div class="card-title">Brevo SMTP Settings</div>
+        <div class="card-title">Brevo API Settings</div>
         <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.7">
           These credentials are saved to your account and used for all your campaigns.
-          Get them from <a href="https://app.brevo.com/settings/keys/smtp" target="_blank" style="color:var(--green)">Brevo SMTP & API settings</a>.
+          Get your API key from <a href="https://app.brevo.com/settings/keys/api" target="_blank" style="color:var(--green)">Brevo → SMTP & API → API Keys tab</a>.
         </p>
-        <div class="row">
-          <div class="field">
-            <label>Brevo SMTP Login</label>
-            <input type="text" id="s-login" placeholder="a97f21001@smtp-brevo.com" value="{{ creds.smtp_login if creds else '' }}">
-          </div>
-          <div class="field">
-            <label>SMTP Key</label>
-            <input type="password" id="s-key" placeholder="xsmtpsib-..." value="{{ creds.smtp_key if creds else '' }}">
-          </div>
+        <div class="field">
+          <label>Brevo API Key</label>
+          <input type="password" id="s-key" placeholder="xkeysib-..." value="{{ creds.api_key if creds else '' }}">
         </div>
         <div class="row">
           <div class="field">
@@ -559,12 +553,11 @@ function resetBtn() {
 // ── Settings ───────────────────────────────────────────────
 function saveSettings() {
   const d = {
-    smtp_login:   document.getElementById('s-login').value.trim(),
-    smtp_key:     document.getElementById('s-key').value.trim(),
+    api_key:      document.getElementById('s-key').value.trim(),
     sender_email: document.getElementById('s-email').value.trim(),
     sender_name:  document.getElementById('s-name').value.trim(),
   };
-  if (!d.smtp_login || !d.smtp_key || !d.sender_email || !d.sender_name) {
+  if (!d.api_key || !d.sender_email || !d.sender_name) {
     document.getElementById('settings-alert').innerHTML='<div class="alert alert-err">All fields required.</div>'; return;
   }
   fetch('/api/credentials', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(d)})

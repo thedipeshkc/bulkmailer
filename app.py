@@ -1,21 +1,18 @@
 """
 BulkMailer — Free Multi-User Bulk Email SaaS
-PythonAnywhere compatible (no background threads)
+Uses Brevo HTTP API (works on PythonAnywhere free plan)
 """
 
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
-import sqlite3, smtplib, csv, io, time, hashlib, os, json
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from datetime import datetime
+import sqlite3, csv, io, time, hashlib, os, json
+import urllib.request, urllib.error
 from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "bulkmailer-secret-2083")
-
 DB = "bulkmailer.db"
-user_states = {}
 
+# ── DATABASE ───────────────────────────────────────────────
 def get_db():
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
@@ -33,8 +30,9 @@ def init_db():
         );
         CREATE TABLE IF NOT EXISTS credentials (
             user_id INTEGER PRIMARY KEY,
-            smtp_login TEXT, smtp_key TEXT,
-            sender_email TEXT, sender_name TEXT,
+            api_key TEXT,
+            sender_email TEXT,
+            sender_name TEXT,
             FOREIGN KEY(user_id) REFERENCES users(id)
         );
         CREATE TABLE IF NOT EXISTS templates (
@@ -55,6 +53,7 @@ def init_db():
 
 init_db()
 
+# ── HELPERS ────────────────────────────────────────────────
 def hash_pw(pw): return hashlib.sha256(pw.encode()).hexdigest()
 
 def login_required(f):
@@ -77,6 +76,32 @@ def get_creds(user_id):
     with get_db() as db:
         return db.execute("SELECT * FROM credentials WHERE user_id=?", (user_id,)).fetchone()
 
+# ── BREVO HTTP API SENDER ──────────────────────────────────
+def send_via_brevo_api(api_key, sender_email, sender_name, to_email, to_name, subject, plain, html):
+    """Send one email using Brevo HTTP API — works on PythonAnywhere free plan."""
+    url = "https://api.brevo.com/v3/smtp/email"
+    payload = json.dumps({
+        "sender": {"name": sender_name, "email": sender_email},
+        "to": [{"email": to_email, "name": to_name}],
+        "subject": subject,
+        "textContent": plain,
+        "htmlContent": html
+    }).encode("utf-8")
+
+    req = urllib.request.Request(url, data=payload, method="POST")
+    req.add_header("Content-Type", "application/json")
+    req.add_header("Accept", "application/json")
+    req.add_header("api-key", api_key)
+
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return resp.status in (200, 201, 202), None
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="ignore")
+        return False, f"HTTP {e.code}: {body[:200]}"
+    except Exception as ex:
+        return False, str(ex)
+
 # ── AUTH ───────────────────────────────────────────────────
 @app.route("/")
 def index():
@@ -94,7 +119,7 @@ def login():
             user = db.execute("SELECT * FROM users WHERE email=? AND password=?",
                               (email, hash_pw(pw))).fetchone()
         if user:
-            session["user_id"] = user["id"]
+            session["user_id"]   = user["id"]
             session["user_name"] = user["name"]
             return redirect(url_for("dashboard"))
         error = "Invalid email or password."
@@ -140,8 +165,8 @@ def dashboard():
     uid   = session["user_id"]
     creds = get_creds(uid)
     with get_db() as db:
-        hist = db.execute("SELECT * FROM history WHERE user_id=? ORDER BY sent_at DESC LIMIT 10", (uid,)).fetchall()
-        templates = db.execute("SELECT * FROM templates WHERE user_id=? ORDER BY created DESC", (uid,)).fetchall()
+        hist       = db.execute("SELECT * FROM history WHERE user_id=? ORDER BY sent_at DESC LIMIT 10", (uid,)).fetchall()
+        templates  = db.execute("SELECT * FROM templates WHERE user_id=? ORDER BY created DESC", (uid,)).fetchall()
         total_sent = db.execute("SELECT COALESCE(SUM(sent),0) as s FROM history WHERE user_id=?", (uid,)).fetchone()["s"]
         campaigns  = db.execute("SELECT COUNT(*) as c FROM history WHERE user_id=?", (uid,)).fetchone()["c"]
     return render_template("dashboard.html",
@@ -163,11 +188,11 @@ def save_credentials():
     with get_db() as db:
         existing = db.execute("SELECT 1 FROM credentials WHERE user_id=?", (uid,)).fetchone()
         if existing:
-            db.execute("UPDATE credentials SET smtp_login=?,smtp_key=?,sender_email=?,sender_name=? WHERE user_id=?",
-                       (d["smtp_login"], d["smtp_key"], d["sender_email"], d["sender_name"], uid))
+            db.execute("UPDATE credentials SET api_key=?,sender_email=?,sender_name=? WHERE user_id=?",
+                       (d["api_key"], d["sender_email"], d["sender_name"], uid))
         else:
-            db.execute("INSERT INTO credentials (user_id,smtp_login,smtp_key,sender_email,sender_name) VALUES (?,?,?,?,?)",
-                       (uid, d["smtp_login"], d["smtp_key"], d["sender_email"], d["sender_name"]))
+            db.execute("INSERT INTO credentials (user_id,api_key,sender_email,sender_name) VALUES (?,?,?,?)",
+                       (uid, d["api_key"], d["sender_email"], d["sender_name"]))
     return jsonify({"message": "Credentials saved!"})
 
 @app.route("/api/credentials", methods=["GET"])
@@ -175,8 +200,9 @@ def save_credentials():
 def get_credentials():
     creds = get_creds(session["user_id"])
     if creds:
-        return jsonify({"smtp_login": creds["smtp_login"], "sender_email": creds["sender_email"],
-                        "sender_name": creds["sender_name"], "has_key": bool(creds["smtp_key"])})
+        return jsonify({"sender_email": creds["sender_email"],
+                        "sender_name":  creds["sender_name"],
+                        "has_key": bool(creds["api_key"])})
     return jsonify({})
 
 # ── TEMPLATES ──────────────────────────────────────────────
@@ -187,14 +213,15 @@ def save_template():
     d   = request.json
     with get_db() as db:
         db.execute("INSERT INTO templates (user_id,name,subject,plain,html,image_url) VALUES (?,?,?,?,?,?)",
-                   (uid, d["name"], d["subject"], d["plain"], d["html"], d.get("image_url","")))
+                   (uid, d["name"], d["subject"], d["plain"], d.get("html",""), d.get("image_url","")))
     return jsonify({"message": "Template saved!"})
 
 @app.route("/api/templates", methods=["GET"])
 @api_login_required
 def list_templates():
     with get_db() as db:
-        rows = db.execute("SELECT * FROM templates WHERE user_id=? ORDER BY created DESC", (session["user_id"],)).fetchall()
+        rows = db.execute("SELECT * FROM templates WHERE user_id=? ORDER BY created DESC",
+                          (session["user_id"],)).fetchall()
     return jsonify([dict(r) for r in rows])
 
 @app.route("/api/templates/<int:tid>", methods=["DELETE"])
@@ -211,74 +238,64 @@ def parse_csv():
     f = request.files.get("csv_file")
     if not f: return jsonify({"error": "No file"}), 400
     try:
-        content = f.read().decode("utf-8")
-        reader  = csv.DictReader(io.StringIO(content))
+        content  = f.read().decode("utf-8")
+        reader   = csv.DictReader(io.StringIO(content))
         contacts = [{k.strip().lower(): v.strip() for k, v in r.items()}
-                    for r in reader if r.get("email","").strip() or r.get("Email","").strip()]
+                    for r in reader]
+        contacts = [c for c in contacts if c.get("email","").strip()]
         return jsonify({"contacts": contacts, "count": len(contacts)})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-# ── SEND — synchronous, no threads (PythonAnywhere compatible) ──
+# ── SEND via Brevo HTTP API ────────────────────────────────
 @app.route("/api/send", methods=["POST"])
 @api_login_required
 def send():
-    uid = session["user_id"]
-    d   = request.json
-
-    if not d.get("contacts"):
-        return jsonify({"error": "No contacts loaded"}), 400
-
+    uid   = session["user_id"]
+    d     = request.json
     creds = get_creds(uid)
-    smtp_login   = creds["smtp_login"]   if creds else ""
-    smtp_key     = creds["smtp_key"]     if creds else ""
-    sender_email = creds["sender_email"] if creds else ""
-    sender_name  = creds["sender_name"]  if creds else ""
 
-    if not smtp_login or not smtp_key or not sender_email:
-        return jsonify({"error": "Missing Brevo credentials. Go to Settings first."}), 400
+    if not creds or not creds["api_key"]:
+        return jsonify({"error": "Missing Brevo API key. Go to Settings and save your credentials first."}), 400
 
-    contacts  = d["contacts"]
-    subject   = d.get("subject", "")
-    plain     = d.get("plain_body", "")
-    html      = d.get("html_body", "")
-    image_url = d.get("image_url", "")
+    contacts     = d.get("contacts", [])
+    subject      = d.get("subject", "")
+    plain_body   = d.get("plain_body", "")
+    html_body    = d.get("html_body", "")
+    image_url    = d.get("image_url", "")
+    sender_email = creds["sender_email"]
+    sender_name  = creds["sender_name"]
+    api_key      = creds["api_key"]
+
+    if not contacts:
+        return jsonify({"error": "No contacts loaded"}), 400
+    if not subject or not plain_body:
+        return jsonify({"error": "Subject and email body cannot be empty"}), 400
 
     sent_count   = 0
     failed_count = 0
     log          = []
 
-    try:
-        with smtplib.SMTP("smtp-relay.brevo.com", 587, timeout=30) as srv:
-            srv.starttls()
-            srv.login(smtp_login, smtp_key)
+    for c in contacts:
+        name  = c.get("name", "there")
+        email = c.get("email", "")
+        if not email:
+            continue
 
-            for c in contacts:
-                name  = c.get("name", "there")
-                email = c.get("email", "")
-                if not email:
-                    continue
-                try:
-                    msg = MIMEMultipart("alternative")
-                    msg["From"]    = f"{sender_name} <{sender_email}>"
-                    msg["To"]      = email
-                    msg["Subject"] = subject.replace("{name}", name)
-                    p2 = plain.replace("{name}", name)
-                    h2 = html.replace("{name}", name).replace("IMAGE_URL_HERE", image_url)
-                    msg.attach(MIMEText(p2, "plain"))
-                    msg.attach(MIMEText(h2, "html"))
-                    srv.sendmail(sender_email, email, msg.as_string())
-                    sent_count += 1
-                    log.append(f"✓ {name} <{email}>")
-                    time.sleep(0.3)
-                except Exception as ex:
-                    failed_count += 1
-                    log.append(f"✗ {email} — {str(ex)}")
+        subj  = subject.replace("{name}", name)
+        plain = plain_body.replace("{name}", name)
+        html  = html_body.replace("{name}", name).replace("IMAGE_URL_HERE", image_url)
 
-    except smtplib.SMTPAuthenticationError:
-        return jsonify({"error": "Authentication failed! Check your Brevo SMTP login and key in Settings."}), 400
-    except Exception as ex:
-        return jsonify({"error": str(ex)}), 500
+        ok, err = send_via_brevo_api(api_key, sender_email, sender_name,
+                                     email, name, subj, plain, html)
+        if ok:
+            sent_count += 1
+            log.append(f"✓ {name} <{email}>")
+        else:
+            failed_count += 1
+            log.append(f"✗ {email} — {err}")
+
+        time.sleep(0.2)  # stay within rate limits
 
     # Save to history
     with get_db() as db:
