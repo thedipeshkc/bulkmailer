@@ -509,10 +509,11 @@ function startSend() {
   const btn = document.getElementById('send-btn');
   const alertBox = document.getElementById('send-alert');
   if (!contacts.length) { alertBox.innerHTML='<div class="alert alert-err">No contacts. Go back to Step 1.</div>'; return; }
-  btn.disabled = true; btn.textContent = '⏳ Sending...';
+  btn.disabled = true; btn.textContent = '⏳ Sending... please wait';
   alertBox.innerHTML = '';
-  document.getElementById('s-log').textContent = 'Connecting...\n';
+  document.getElementById('s-log').textContent = 'Connecting to Brevo and sending emails...\nThis may take a minute for large lists. Please wait!\n';
   document.getElementById('send-status').textContent = '🟢 Sending...';
+  document.getElementById('s-bar').style.width = '30%';
 
   fetch('/api/send', {
     method:'POST', headers:{'Content-Type':'application/json'},
@@ -523,28 +524,30 @@ function startSend() {
       html_body:  buildHTML(),
       image_url:  document.getElementById('w-image').value.trim(),
     })
-  }).then(r=>r.json()).then(d => {
-    if (d.error) { alertBox.innerHTML=`<div class="alert alert-err">${d.error}</div>`; btn.disabled=false; btn.textContent='🚀 Send All Emails'; return; }
-    pollTimer = setInterval(pollProgress, 1000);
-  });
-}
-
-function pollProgress() {
-  fetch('/api/progress').then(r=>r.json()).then(s => {
-    document.getElementById('s-sent').textContent   = s.sent;
-    document.getElementById('s-failed').textContent = s.failed;
-    const pct = s.total > 0 ? Math.round((s.sent+s.failed)/s.total*100) : 0;
-    document.getElementById('s-bar').style.width = pct+'%';
-    document.getElementById('s-label').textContent = `${pct}% — ${s.sent} sent, ${s.failed} failed`;
-    const log = document.getElementById('s-log');
-    if (s.log?.length) { log.textContent = s.log.slice(-30).join('\n'); log.scrollTop=log.scrollHeight; }
-    if (s.error) { document.getElementById('send-alert').innerHTML=`<div class="alert alert-err">${s.error}</div>`; clearInterval(pollTimer); resetBtn(); }
-    if (s.done) {
-      clearInterval(pollTimer);
-      document.getElementById('send-alert').innerHTML=`<div class="alert alert-ok">✅ Done! ${s.sent} sent successfully.</div>`;
-      document.getElementById('send-status').textContent = `✅ ${s.sent} sent`;
+  })
+  .then(r=>r.json())
+  .then(d => {
+    if (d.error) {
+      alertBox.innerHTML=`<div class="alert alert-err">${d.error}</div>`;
+      document.getElementById('s-log').textContent = 'Error: ' + d.error;
+      document.getElementById('send-status').textContent = '❌ Failed';
       resetBtn();
+      return;
     }
+    // Success
+    document.getElementById('s-sent').textContent   = d.sent;
+    document.getElementById('s-failed').textContent = d.failed;
+    document.getElementById('s-bar').style.width = '100%';
+    document.getElementById('s-label').textContent = `100% — ${d.sent} sent, ${d.failed} failed`;
+    document.getElementById('s-log').textContent = d.log ? d.log.join('\n') : '';
+    alertBox.innerHTML = `<div class="alert alert-ok">✅ Done! ${d.sent} emails sent successfully${d.failed > 0 ? `, ${d.failed} failed` : ''}.</div>`;
+    document.getElementById('send-status').textContent = `✅ ${d.sent} sent`;
+    resetBtn();
+  })
+  .catch(err => {
+    alertBox.innerHTML='<div class="alert alert-err">Connection error. Please try again.</div>';
+    document.getElementById('s-log').textContent = 'Error: ' + err;
+    resetBtn();
   });
 }
 
